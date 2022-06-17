@@ -10,6 +10,7 @@ func AddContext(s *service.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		service.SetContext(c, &service.Context{
 			PhotoProcessChannel: s.PhotoProcessChannel,
+			Logger:              service.NewContextLogger(),
 		})
 		c.Next()
 	}
@@ -17,5 +18,6 @@ func AddContext(s *service.Service) gin.HandlerFunc {
 
 // Authenticate TODO: add authentication
 func Authenticate(c *gin.Context) {
+	// here would be where I implement some sort of authentication, such as BasicAuth, JWT Token etc
 	c.Next()
 }

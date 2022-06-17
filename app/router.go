@@ -7,9 +7,14 @@ import (
 )
 
 // CreateV1Routes Defines V1 API routes
-func CreateV1Routes(router *gin.Engine, service *service.Service) {
-	v1 := router.Group("/v1", AddContext(service))
-	v1.Use(gin.Recovery())
+func CreateV1Routes(router *gin.Engine, srv *service.Service) {
+	// Set up the custom logger
+	vX := router.Group("/")
+	vX.Use(service.NewContextLogger().LoggerWithWriter(gin.DefaultWriter))
+	vX.Use(gin.Recovery()) // recovers panics and spits out a 500 Internal Error
+
+	// Create a version 1 route group, we can add more versions when needed
+	v1 := vX.Group("/v1", AddContext(srv))
 
 	v1.POST("/authenticate", handlers.Authenticate)
 

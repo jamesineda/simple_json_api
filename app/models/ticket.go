@@ -20,9 +20,14 @@ func (e *ErrInvalidDateFormat) Error() string {
 
 var ErrTotalDueMustBeGreaterThenZero error = fmt.Errorf("total_due must be greater than 0")
 var ErrReducedAmountMustBeGreaterThenZero error = fmt.Errorf("reduced_amount must be greater than 0")
+var ErrSrefCannotBeBlank error = fmt.Errorf("sref cannot be blank")
+var ErrNoticeNumberCannotBeBlank error = fmt.Errorf("notice_number cannot be blank")
+var ErrVehicleRegistrationCannotBeBlank error = fmt.Errorf("vehicle_registration cannot be blank")
+var ErrContraventionCannotBeBlank error = fmt.Errorf("contravention cannot be blank")
+var ErrLocationCannotBeBlank error = fmt.Errorf("location cannot be blank")
 
 type Ticket struct {
-	Sref                  string             `json:"sref" binding:"required"`
+	Sref                  string             `json:"sref" binding:"required,min=1"`
 	NoticeNumber          string             `json:"notice_number" binding:"required"`
 	VehicleRegistration   string             `json:"vehicle_registration" binding:"required"`
 	Contravention         string             `json:"contravention" binding:"required"`
@@ -37,7 +42,7 @@ type Ticket struct {
 	ReducePeriodEnds      *time.Time         `json:"reduce_period_ends"`
 	Photos                Photos             `json:"photos" binding:"required"`
 	PaymentUrl            string             `json:"payment_url"`
-	AppealUrl             string             `json:"appeal_url_url"`
+	AppealUrl             string             `json:"appeal_url"`
 }
 
 func (t *Ticket) UnmarshalJSON(data []byte) error {
@@ -56,6 +61,22 @@ func (t *Ticket) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if aux.Sref == "" {
+		return ErrSrefCannotBeBlank
+	}
+
+	if aux.NoticeNumber == "" {
+		return ErrNoticeNumberCannotBeBlank
+	}
+
+	if aux.VehicleRegistration == "" {
+		return ErrVehicleRegistrationCannotBeBlank
+	}
+
+	if aux.Contravention == "" {
+		return ErrContraventionCannotBeBlank
+	}
+
 	// this is valid IANA timezone string (https://www.iana.org/time-zones), so no need to handle an error
 	loc, _ := time.LoadLocation("Europe/London")
 	cpt, err := time.Parse(time.RFC3339Nano, aux.ContraventionDatetime)
@@ -64,6 +85,10 @@ func (t *Ticket) UnmarshalJSON(data []byte) error {
 	}
 	contraventionDatetime := cpt.In(loc)
 	t.ContraventionDatetime = &contraventionDatetime
+
+	if aux.Location == "" {
+		return ErrLocationCannotBeBlank
+	}
 
 	rpept, err := time.ParseInLocation("2006-01-02", aux.ReducePeriodEnds, loc)
 	if err != nil {

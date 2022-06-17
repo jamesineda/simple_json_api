@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-//var ErrInvalidDatetimeFormat = fmt.Errorf("invalid datetime format, must be RFC3339 Nano")
-
 type ErrInvalidDatetimeFormat struct {
 	field string
 }

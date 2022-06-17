@@ -7,6 +7,7 @@ import (
 
 type Context struct {
 	PhotoProcessChannel chan<- models.Photos
+	Logger              ContextLogger
 }
 
 func SetContext(c *gin.Context, a *Context) {

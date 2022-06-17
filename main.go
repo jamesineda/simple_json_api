@@ -21,10 +21,14 @@ import (
 
 const (
 	PORT = "PORT"
+	MODE = "MODE"
 )
 
 func BindCommandLineArgs() {
 	flag.String(PORT, "8080", "port number to listen on")
+
+	// See https://github.com/gin-gonic/gin for modes
+	flag.String(MODE, gin.DebugMode, "what mode to start webserver in")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
@@ -40,7 +44,7 @@ func BindCommandLineArgs() {
 */
 
 func ListenAndServe(portNumber string, service *service.Service) (srv *http.Server, err error) {
-	router := gin.Default()
+	router := gin.New()
 	app.CreateV1Routes(router, service)
 
 	srv = &http.Server{
@@ -59,34 +63,37 @@ func ListenAndServe(portNumber string, service *service.Service) (srv *http.Serv
 func main() {
 	BindCommandLineArgs()
 	portNumber := viper.GetString(PORT)
+	gin.SetMode(viper.GetString(MODE))
 
 	// Go routine channels
 	photoChannel := make(chan models.Photos)
 	shutdownChan := make(chan bool)
 	quit := make(chan os.Signal)
 
-	service := service.NewService(photoChannel)
+	appService := service.NewService(photoChannel)
 
 	// Creating webservice
-	srv, err := ListenAndServe(portNumber, service)
+	webserver, err := ListenAndServe(portNumber, appService)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("failed to start webserver on port :%s", portNumber))
 
 	} else {
 		// Start the process that'll print the parsed photo MIME types
-		service.StartPhotoProcessorRoutine(photoChannel, shutdownChan)
+		appService.StartPhotoProcessorRoutine(photoChannel, shutdownChan)
+
+		// wait for shutdown signal
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+		// gracefully shutdown go routines and webserver
 		<-quit
 		log.Println("Shutting down server...")
 		shutdownChan <- true
 
-		// The context is used to inform the server it has 5 seconds to finish
-		// the request it is currently handling
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Fatal("Server forced to shutdown:", err)
+		if err := webserver.Shutdown(ctx); err != nil {
+			log.Fatal("Webserver forced to shutdown:", err)
 		}
 
 		log.Println("Server exiting")

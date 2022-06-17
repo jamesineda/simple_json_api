@@ -9,10 +9,11 @@ import (
 
 type Service struct {
 	PhotoProcessChannel chan<- models.Photos
+	Logger              ContextLogger
 }
 
 func NewService(pc chan<- models.Photos) *Service {
-	return &Service{PhotoProcessChannel: pc}
+	return &Service{PhotoProcessChannel: pc, Logger: NewContextLogger()}
 }
 
 // StartPhotoProcessorRoutine Just an example of asynchronous processing. We could validate the payment_url here, hit a car registration endpoint, etc.
@@ -28,7 +29,7 @@ func (s *Service) StartPhotoProcessorRoutine(photos <-chan models.Photos, shutdo
 				if err != nil {
 					log.Println(fmt.Sprintf("[ERROR] error processing photos %s", err))
 				}
-				log.Println(fmt.Sprintf("%s", p))
+				log.Printf("PHOTO IMAGE TYPES %s", p)
 
 			case <-shutdown:
 				log.Println("shutting down photo processor!")
